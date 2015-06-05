@@ -6,18 +6,28 @@ module.exports = (grunt) ->
       grunt.file.readJSON "package.json"
 
     livescript:
-      src:
+      javascript:
         files:
           "tmp/javascript/todoApp.jsx": "src/javascript/todoApp.lsx"
 
     react:
-      src:
+      javascript:
         files:
-          "target/javascript/todoApp.js": "tmp/javascript/todoApp.jsx"
+          "target/javascripts/todoApp.js": "tmp/javascript/todoApp.jsx"
+
+    copy:
+      html:
+        src: "src/app.html"
+        dest: "target/app.html"
+
+      javascript:
+        src: "src/javascript/react.min.js"
+        dest: "target/javascripts/react.min.js"
 
   # load tasks
-  grunt.loadNpmTasks \grunt-livescript
-  grunt.loadNpmTasks \grunt-react
+  grunt.loadNpmTasks "grunt-livescript"
+  grunt.loadNpmTasks "grunt-react"
+  grunt.loadNpmTasks "grunt-contrib-copy"
 
   # register tasks
-  grunt.registerTask \default, <[livescript react]>
+  grunt.registerTask "default", <[livescript react copy]>

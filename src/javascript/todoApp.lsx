@@ -4,3 +4,6 @@ TodoApp = React.createClass do
     render: ->
         ``<div>Hello world</div>``
 
+React.render do
+    ``<TodoApp />``
+    document.getElementById "todo_app"
