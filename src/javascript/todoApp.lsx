@@ -1,8 +1,52 @@
 
+TodoItem = React.createClass do
+
+    render: ->
+        ``<span>
+            <input type="checkbox" id={this.props.text} />
+            <label htmlFor={this.props.text}>{this.props.text}</label>
+            <button class="del" onClick={this.props.onDelete}>X</button>
+          </span>``
+
+TodoList = React.createClass do
+
+    createItem: (item, i) ->
+        onDelete = (e) ~> this.props.onDelete(e, i)
+        ``<li><TodoItem text={item.text} onDelete={onDelete} /></li>``
+
+    render: ->
+        ``<ul>{this.props.items.map(this.createItem)}</ul>``
+
 TodoApp = React.createClass do
     
+    getInitialState: ->
+        items: []
+        text: ""
+
+    onChange: (e) ->
+        this.setState { text: e.target.value }
+
+    onDelete: (e, i) ->
+        e.preventDefault!
+        this.setState do
+            items: this.state.items.filter (item, index) -> index != i
+
+    handleSubmit: (e) ->
+        e.preventDefault!
+        console.log this.state.text
+        this.setState do
+            items: this.state.items.concat [ { text: this.state.text } ]
+            text: ""
+
     render: ->
-        ``<div>Hello world</div>``
+        ``<div class="todo_app">
+            <h3>TODO</h3>
+            <TodoList items={this.state.items} onDelete={this.onDelete} />
+            <form onSubmit={this.handleSubmit}>
+                <input onChange={this.onChange} value={this.state.text} />
+                <button>Add</button>
+            </form>
+          </div>``
 
 React.render do
     ``<TodoApp />``
