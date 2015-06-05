@@ -1,2 +1,11 @@
+
+# Sublime
 *.sublime-project
 *.sublime-workspace
+
+# Node modules
+node_modules/*
+
+# Build
+tmp/*
+target/*

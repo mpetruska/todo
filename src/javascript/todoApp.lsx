@@ -1,0 +1,6 @@
+
+TodoApp = React.createClass do
+    
+    render: ->
+        ``<div>Hello world</div>``
+

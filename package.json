@@ -1,0 +1,28 @@
+{
+  "name": "todo",
+  "version": "1.0.0",
+  "description": "Offline Todo application",
+  "main": "index.js",
+  "scripts": {
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mpetruska/todo.git"
+  },
+  "keywords": [
+    "todo"
+  ],
+  "author": "Mark Petruska",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mpetruska/todo/issues"
+  },
+  "homepage": "https://github.com/mpetruska/todo",
+  "devDependencies": {
+    "LiveScript": "^1.3.1",
+    "grunt": "^0.4.5",
+    "grunt-livescript": "^0.5.4",
+    "grunt-react": "^0.12.2",
+    "react": "^0.13.3"
+  }
+}
