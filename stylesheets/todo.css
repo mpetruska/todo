@@ -1,9 +1,9 @@
 
-div.todo_app ul {
+#todo_app ul {
     list-style-type: none;
 }
 
-div.todo_app button.del {
+#todo_app button.del {
     position: absolute;
     right: 30%;
 }
