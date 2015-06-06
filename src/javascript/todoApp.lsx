@@ -33,7 +33,6 @@ TodoApp = React.createClass do
 
     handleSubmit: (e) ->
         e.preventDefault!
-        console.log this.state.text
         this.setState do
             items: this.state.items.concat [ { text: this.state.text } ]
             text: ""
