@@ -11,7 +11,7 @@ TodoItem = React.createClass do
 TodoList = React.createClass do
 
     createItem: (item, i) ->
-        onDelete = (e) ~> this.props.onDelete(e, i)
+        onDelete = (e) ~> @props.onDelete(e, i)
         ``<li><TodoItem text={item.text} onDelete={onDelete} /></li>``
 
     render: ->
@@ -24,17 +24,17 @@ TodoApp = React.createClass do
         text: ""
 
     onChange: (e) ->
-        this.setState { text: e.target.value }
+        @setState { text: e.target.value }
 
     onDelete: (e, i) ->
         e.preventDefault!
-        this.setState do
-            items: this.state.items.filter (item, index) -> index != i
+        @setState do
+            items: @state.items.filter (item, index) -> index != i
 
     handleSubmit: (e) ->
         e.preventDefault!
-        this.setState do
-            items: this.state.items.concat [ { text: this.state.text } ]
+        @setState do
+            items: @state.items ++ [ text: @state.text ]
             text: ""
 
     render: ->
