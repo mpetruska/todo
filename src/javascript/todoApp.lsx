@@ -5,7 +5,7 @@ TodoItem = React.createClass do
         ``<span>
             <input type="checkbox" id={this.props.text} />
             <label htmlFor={this.props.text}>{this.props.text}</label>
-            <button class="del" onClick={this.props.onDelete}>X</button>
+            <button className="del" onClick={this.props.onDelete}>X</button>
           </span>``
 
 TodoList = React.createClass do
