@@ -6,7 +6,7 @@
       return React.createElement("span", null, 
           React.createElement("input", {type: "checkbox", id: this.props.text}), 
           React.createElement("label", {htmlFor: this.props.text}, this.props.text), 
-          React.createElement("button", {class: "del", onClick: this.props.onDelete}, "X")
+          React.createElement("button", {className: "del", onClick: this.props.onDelete}, "X")
         );
     }
   });
