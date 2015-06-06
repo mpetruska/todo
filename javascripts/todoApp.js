@@ -44,7 +44,6 @@
     },
     handleSubmit: function(e){
       e.preventDefault();
-      console.log(this.state.text);
       return this.setState({
         items: this.state.items.concat([{
           text: this.state.text
