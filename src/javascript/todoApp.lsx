@@ -92,8 +92,10 @@ TodoApp = React.create-class do
         todo-storage.save-lists @lists
 
     render: ->
-        ``<div class="todo_app">
+        ``<div>
+            <div id="todo_lists"></div>
             <TodoList listIndex={0} />
+            <div className="clear"></div>
           </div>``
 
 React.render do

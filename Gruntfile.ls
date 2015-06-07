@@ -1,3 +1,5 @@
+{ each } = require "prelude-ls"
+
 module.exports = (grunt) ->
 
   grunt.init-config {}=
@@ -15,6 +17,11 @@ module.exports = (grunt) ->
       javascript:
         files:
           "target/javascripts/todoApp.js": "tmp/javascript/todoApp.jsx"
+
+    stylus:
+      compile:
+        files:
+          "target/stylesheets/todo.css": "src/css/todo.styl"
 
     copy:
       html:
@@ -34,9 +41,12 @@ module.exports = (grunt) ->
         dest: "target/app.appcache"        
 
   # load tasks
-  grunt.loadNpmTasks "grunt-livescript"
-  grunt.loadNpmTasks "grunt-react"
-  grunt.loadNpmTasks "grunt-contrib-copy"
+  <[
+    grunt-livescript
+    grunt-react
+    grunt-contrib-copy
+    grunt-contrib-stylus]>
+  |> each (grunt.load-npm-tasks)
 
   # register tasks
-  grunt.registerTask "default", <[livescript react copy]>
+  grunt.registerTask "default", <[livescript react stylus copy]>
