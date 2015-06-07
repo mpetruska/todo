@@ -3,34 +3,59 @@
   var ref$, curry, each, map, unfoldr, zip;
   ref$ = require("prelude-ls"), curry = ref$.curry, each = ref$.each, map = ref$.map, unfoldr = ref$.unfoldr, zip = ref$.zip;
   window.todoStorage = {
-    loadLists: function(){
-      var e;
+    loadList: function(i){
+      var that, e;
       try {
-        return map(JSON.parse)(
-        unfoldr(function(i){
-          var that;
-          if (that = localStorage.getItem("todo-" + i)) {
-            return [that, i + 1];
-          } else {
-            return null;
-          }
-        }, 0));
+        if (that = localStorage.getItem("todo-" + i)) {
+          return JSON.parse(that);
+        } else {
+          return null;
+        }
       } catch (e$) {
         e = e$;
         console.log(e);
         return null;
       }
     },
-    saveList: function(arg$){
-      var i, list;
-      i = arg$[0], list = arg$[1];
-      return localStorage.setItem("todo-" + i, JSON.stringify(
-      list));
+    loadLists: function(){
+      var e;
+      try {
+        return unfoldr(function(i){
+          var that, ref$;
+          if (that = todoStorage.loadList(i)) {
+            return [
+              (ref$ = that.name) != null
+                ? ref$
+                : "todo-" + i, i + 1
+            ];
+          } else {
+            return null;
+          }
+        }, 0);
+      } catch (e$) {
+        e = e$;
+        console.log(e);
+        return null;
+      }
+    },
+    saveList: function(i, list){
+      var e;
+      try {
+        localStorage.setItem("todo-" + i, JSON.stringify(
+        list));
+      } catch (e$) {
+        e = e$;
+        console.log(e);
+      }
     },
     saveLists: function(lists){
       var e;
       try {
-        each(todoStorage.saveList)(
+        each(function(arg$){
+          var i, list;
+          i = arg$[0], list = arg$[1];
+          return todoStorage.saveList(i, list);
+        })(
         zip((function(){
           var i$, to$, results$ = [];
           for (i$ = 0, to$ = lists.length; i$ < to$; ++i$) {

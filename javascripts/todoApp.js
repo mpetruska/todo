@@ -16,66 +16,38 @@
     }
   });
   TodoList = React.createClass({displayName: "TodoList",
-    createItem: function(item){
-      var onDelete, onFinishedChange, this$ = this;
-      onDelete = function(e){
-        return this$.props.onDelete(e, item);
-      };
-      onFinishedChange = function(x){
-        return this$.props.onFinishedChange(item, x);
-      };
-      return React.createElement("li", null, React.createElement(TodoItem, {text: item.text, finished: item.finished, onDelete: onDelete, onFinishedChange: onFinishedChange}));
-    },
-    render: function(){
-      var children;
-      children = map(this.createItem)(
-      this.props.items);
-      return React.createElement("ul", null, children);
-    }
-  });
-  TodoApp = React.createClass({displayName: "TodoApp",
     getInitialState: function(){
       return {
+        name: "default",
         items: [],
         text: ""
       };
     },
     componentDidMount: function(){
-      var ref$;
-      return this.setState({
-        items: (ref$ = todoStorage.loadLists()[0]) != null
-          ? ref$
-          : []
-      });
+      var list, ref$;
+      list = todoStorage.loadList(this.props.listIndex);
+      this.setState(list
+        ? {
+          name: (ref$ = list.name) != null ? ref$ : "default",
+          items: (ref$ = list.items) != null
+            ? ref$
+            : []
+        }
+        : {
+          name: "default",
+          items: []
+        });
     },
-    saveLists: function(lists){
-      todoStorage.saveLists(lists);
+    saveList: function(newItems){
+      todoStorage.saveList(this.props.listIndex, {
+        name: this.state.name,
+        items: newItems
+      });
     },
     onChange: function(e){
       this.setState({
         text: e.target.value
       });
-    },
-    onDelete: function(e, item){
-      var newItems;
-      e.preventDefault();
-      newItems = filter(function(x){
-        return x !== item;
-      })(
-      this.state.items);
-      this.setState({
-        items: newItems
-      });
-      this.saveLists([newItems]);
-    },
-    onFinishedChange: function(item, x){
-      var newItems;
-      item.finished = x;
-      newItems = this.state.items;
-      this.setState({
-        items: newItems
-      });
-      this.saveLists([newItems]);
     },
     handleSubmit: function(e){
       var newItems;
@@ -88,16 +60,72 @@
         items: newItems,
         text: ""
       });
-      this.saveLists([newItems]);
+      this.saveList(newItems);
+      return false;
+    },
+    createItem: function(item){
+      var onDelete, onFinishedChange, this$ = this;
+      onDelete = function(e){
+        var newItems;
+        e.preventDefault();
+        newItems = filter(function(x){
+          return x !== item;
+        })(
+        this$.state.items);
+        this$.setState({
+          items: newItems
+        });
+        this$.saveList(newItems);
+        return false;
+      };
+      onFinishedChange = function(x){
+        var newItems;
+        item.finished = x;
+        newItems = this$.state.items;
+        this$.setState({
+          items: newItems
+        });
+        this$.saveList(newItems);
+        return false;
+      };
+      return React.createElement("li", null, 
+          React.createElement(TodoItem, {text: item.text, finished: item.finished, onDelete: onDelete, onFinishedChange: onFinishedChange})
+        );
     },
     render: function(){
-      return React.createElement("div", {class: "todo_app"}, 
-          React.createElement("h3", null, "TODO"), 
-          React.createElement(TodoList, {items: this.state.items, onDelete: this.onDelete, onFinishedChange: this.onFinishedChange}), 
+      var children;
+      children = map(this.createItem)(
+      this.state.items);
+      return React.createElement("div", {id: "todo_list"}, 
+          React.createElement("h4", null, this.state.name), 
+          React.createElement("ul", null, children), 
           React.createElement("form", {onSubmit: this.handleSubmit}, 
               React.createElement("input", {onChange: this.onChange, value: this.state.text}), 
               React.createElement("button", null, "Add")
           )
+        );
+    }
+  });
+  TodoApp = React.createClass({displayName: "TodoApp",
+    getInitialState: function(){
+      return {
+        lists: []
+      };
+    },
+    componentDidMount: function(){
+      var ref$;
+      this.setState({
+        lists: (ref$ = todoStorage.loadLists()) != null
+          ? ref$
+          : []
+      });
+    },
+    saveLists: function(){
+      todoStorage.saveLists(this.lists);
+    },
+    render: function(){
+      return React.createElement("div", {class: "todo_app"}, 
+          React.createElement(TodoList, {listIndex: 0})
         );
     }
   });
