@@ -1,46 +1,72 @@
 
-TodoItem = React.createClass do
+{ filter, map, zip } = require "prelude-ls"
+
+TodoItem = React.create-class do
+
+    on-change: (e) ->
+        e.target.checked
+        |> @props.on-finished-change
 
     render: ->
         ``<span>
-            <input type="checkbox" id={this.props.text} />
+            <input type="checkbox" checked={this.props.finished} id={this.props.text} onChange={this.onChange} />
             <label htmlFor={this.props.text}>{this.props.text}</label>
             <button className="del" onClick={this.props.onDelete}>X</button>
           </span>``
 
-TodoList = React.createClass do
+TodoList = React.create-class do
 
-    createItem: (item, i) ->
-        onDelete = (e) ~> @props.onDelete(e, i)
-        ``<li><TodoItem text={item.text} onDelete={onDelete} /></li>``
+    create-item: (item) ->
+        on-delete = (e) ~> @props.on-delete(e, item)
+        on-finished-change = (x) ~> @props.on-finished-change(item, x)
+        ``<li><TodoItem text={item.text} finished={item.finished} onDelete={onDelete} onFinishedChange={onFinishedChange}/></li>``
 
     render: ->
-        ``<ul>{this.props.items.map(this.createItem)}</ul>``
+        children = @props.items
+                   |> map (@createItem)
+        ``<ul>{children}</ul>``
 
-TodoApp = React.createClass do
+TodoApp = React.create-class do
     
-    getInitialState: ->
+    get-initial-state: ->
         items: []
         text: ""
 
-    onChange: (e) ->
-        @setState { text: e.target.value }
+    component-did-mount: ->
+        @set-state do
+            items: todo-storage.load-lists![0] ? []
 
-    onDelete: (e, i) ->
-        e.preventDefault!
-        @setState do
-            items: @state.items.filter (item, index) -> index != i
+    save-lists: (lists) !->
+        todo-storage.save-lists lists
 
-    handleSubmit: (e) ->
-        e.preventDefault!
-        @setState do
-            items: @state.items ++ [ text: @state.text ]
+    on-change: (e) !->
+        @set-state { text: e.target.value }
+
+    on-delete: (e, item) !->
+        e.prevent-default!
+        new-items = @state.items
+                    |> filter (x) -> x != item
+        @set-state items: new-items
+        @save-lists [new-items]
+
+    on-finished-change: (item, x) !->
+        item.finished = x
+        new-items = @state.items
+        @set-state items: new-items
+        @save-lists [new-items]
+
+    handle-submit: (e) !->
+        e.prevent-default!
+        new-items = @state.items ++ [ text: @state.text, finished: false ]
+        @set-state do
+            items: new-items
             text: ""
+        @save-lists [new-items]
 
     render: ->
         ``<div class="todo_app">
             <h3>TODO</h3>
-            <TodoList items={this.state.items} onDelete={this.onDelete} />
+            <TodoList items={this.state.items} onDelete={this.onDelete} onFinishedChange={this.onFinishedChange} />
             <form onSubmit={this.handleSubmit}>
                 <input onChange={this.onChange} value={this.state.text} />
                 <button>Add</button>
@@ -49,4 +75,4 @@ TodoApp = React.createClass do
 
 React.render do
     ``<TodoApp />``
-    document.getElementById "todo_app"
+    document.get-element-by-id "todo_app"

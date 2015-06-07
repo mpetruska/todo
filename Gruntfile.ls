@@ -9,6 +9,7 @@ module.exports = (grunt) ->
       javascript:
         files:
           "tmp/javascript/todoApp.jsx": "src/javascript/todoApp.lsx"
+          "target/javascripts/todoStorage.js": "src/javascript/todoStorage.ls"
 
     react:
       javascript:
@@ -20,9 +21,17 @@ module.exports = (grunt) ->
         src: "src/app.html"
         dest: "target/app.html"
 
-      javascript:
+      react:
         src: "src/javascript/react.min.js"
         dest: "target/javascripts/react.min.js"
+
+      prelude:
+        src: "src/javascript/prelude-browser-min.js"
+        dest: "target/javascripts/prelude-browser-min.js"
+
+      manifest:
+        src: "src/app.appcache"
+        dest: "target/app.appcache"        
 
   # load tasks
   grunt.loadNpmTasks "grunt-livescript"
