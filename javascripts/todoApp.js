@@ -124,8 +124,10 @@
       todoStorage.saveLists(this.lists);
     },
     render: function(){
-      return React.createElement("div", {class: "todo_app"}, 
-          React.createElement(TodoList, {listIndex: 0})
+      return React.createElement("div", null, 
+          React.createElement("div", {id: "todo_lists"}), 
+          React.createElement(TodoList, {listIndex: 0}), 
+          React.createElement("div", {className: "clear"})
         );
     }
   });
