@@ -16,61 +16,84 @@ TodoItem = React.create-class do
 
 TodoList = React.create-class do
 
-    create-item: (item) ->
-        on-delete = (e) ~> @props.on-delete(e, item)
-        on-finished-change = (x) ~> @props.on-finished-change(item, x)
-        ``<li><TodoItem text={item.text} finished={item.finished} onDelete={onDelete} onFinishedChange={onFinishedChange}/></li>``
-
-    render: ->
-        children = @props.items
-                   |> map (@createItem)
-        ``<ul>{children}</ul>``
-
-TodoApp = React.create-class do
-    
     get-initial-state: ->
+        name: "default"
         items: []
         text: ""
 
-    component-did-mount: ->
+    component-did-mount: !->
+        list = todo-storage.load-list @props.list-index
         @set-state do
-            items: todo-storage.load-lists![0] ? []
+            if list
+                name: list.name ? "default"
+                items: list.items ? []
+            else
+                name: "default"
+                items: []
 
-    save-lists: (lists) !->
-        todo-storage.save-lists lists
+    save-list: (new-items) !->
+        todo-storage.save-list @props.list-index, { name: @state.name, items: new-items }
 
     on-change: (e) !->
         @set-state { text: e.target.value }
 
-    on-delete: (e, item) !->
-        e.prevent-default!
-        new-items = @state.items
-                    |> filter (x) -> x != item
-        @set-state items: new-items
-        @save-lists [new-items]
-
-    on-finished-change: (item, x) !->
-        item.finished = x
-        new-items = @state.items
-        @set-state items: new-items
-        @save-lists [new-items]
-
-    handle-submit: (e) !->
+    handle-submit: (e) ->
         e.prevent-default!
         new-items = @state.items ++ [ text: @state.text, finished: false ]
         @set-state do
             items: new-items
             text: ""
-        @save-lists [new-items]
+        @save-list new-items
+        false
+
+    create-item: (item) ->
+
+        on-delete = (e) ~>
+            e.prevent-default!
+            new-items = @state.items
+                        |> filter (x) -> x != item
+            @set-state items: new-items
+            @save-list new-items
+            false
+
+        on-finished-change = (x) ~>
+            item.finished = x
+            new-items = @state.items
+            @set-state items: new-items
+            @save-list new-items
+            false
+
+        ``<li>
+            <TodoItem text={item.text} finished={item.finished} onDelete={onDelete} onFinishedChange={onFinishedChange}/>
+          </li>``
 
     render: ->
-        ``<div class="todo_app">
-            <h3>TODO</h3>
-            <TodoList items={this.state.items} onDelete={this.onDelete} onFinishedChange={this.onFinishedChange} />
+        children = @state.items
+                   |> map (@createItem)
+        ``<div id="todo_list">
+            <h4>{this.state.name}</h4>
+            <ul>{children}</ul>
             <form onSubmit={this.handleSubmit}>
                 <input onChange={this.onChange} value={this.state.text} />
                 <button>Add</button>
             </form>
+          </div>``
+
+TodoApp = React.create-class do
+    
+    get-initial-state: ->
+        lists: []
+
+    component-did-mount: !->
+        @set-state do
+            lists: todo-storage.load-lists! ? []
+
+    save-lists: !->
+        todo-storage.save-lists @lists
+
+    render: ->
+        ``<div class="todo_app">
+            <TodoList listIndex={0} />
           </div>``
 
 React.render do
