@@ -20,12 +20,18 @@
       return {
         name: "default",
         items: [],
-        text: ""
+        newTaskText: ""
       };
     },
     componentDidMount: function(){
+      this.loadList(this.props.listIndex);
+    },
+    componentWillReceiveProps: function(newProps){
+      this.loadList(newProps.listIndex);
+    },
+    loadList: function(listIndex){
       var list, ref$;
-      list = todoStorage.loadList(this.props.listIndex);
+      list = todoStorage.loadList(listIndex);
       this.setState(list
         ? {
           name: (ref$ = list.name) != null ? ref$ : "default",
@@ -44,21 +50,21 @@
         items: newItems
       });
     },
-    onChange: function(e){
+    onNewTaskTextChange: function(e){
       this.setState({
-        text: e.target.value
+        newTaskText: e.target.value
       });
     },
-    handleSubmit: function(e){
+    onNewTask: function(e){
       var newItems;
       e.preventDefault();
       newItems = this.state.items.concat([{
-        text: this.state.text,
+        text: this.state.newTaskText,
         finished: false
       }]);
       this.setState({
         items: newItems,
-        text: ""
+        newTaskText: ""
       });
       this.saveList(newItems);
       return false;
@@ -92,16 +98,24 @@
           React.createElement(TodoItem, {text: item.text, finished: item.finished, onDelete: onDelete, onFinishedChange: onFinishedChange})
         );
     },
+    onDeleteList: function(e){
+      return this.props.onDeleteList(e, this.props.listIndex);
+    },
     render: function(){
       var children;
       children = map(this.createItem)(
       this.state.items);
       return React.createElement("div", {id: "todo_list"}, 
+          React.createElement("form", {onSubmit: this.onDeleteList}, 
+              React.createElement("button", {className: "del"}, "Delete list")
+          ), 
           React.createElement("h4", null, this.state.name), 
-          React.createElement("ul", null, children), 
-          React.createElement("form", {onSubmit: this.handleSubmit}, 
-              React.createElement("input", {onChange: this.onChange, value: this.state.text}), 
-              React.createElement("button", null, "Add")
+          React.createElement("ul", null, 
+              children, 
+              React.createElement("form", {onSubmit: this.onNewTask}, 
+                  React.createElement("input", {type: "text", placeholder: "new task", onChange: this.onNewTaskTextChange, value: this.state.newTaskText}), 
+                  React.createElement("button", null, "Add item")
+              )
           )
         );
     }
@@ -109,24 +123,120 @@
   TodoApp = React.createClass({displayName: "TodoApp",
     getInitialState: function(){
       return {
-        lists: []
+        listsNames: [],
+        selectedIndex: 0,
+        newListName: ""
       };
     },
     componentDidMount: function(){
-      var ref$;
       this.setState({
-        lists: (ref$ = todoStorage.loadLists()) != null
-          ? ref$
-          : []
+        listsNames: this.loadLists()
       });
     },
-    saveLists: function(){
-      todoStorage.saveLists(this.lists);
+    loadLists: function(){
+      var lists;
+      lists = todoStorage.loadListNames();
+      if (!lists || lists.length <= 0) {
+        todoStorage.saveList(0, {
+          name: "default",
+          items: []
+        });
+        lists = todoStorage.loadListNames();
+      }
+      return lists;
+    },
+    createListSelector: function(arg$){
+      var index, name, selectList, this$ = this;
+      index = arg$[0], name = arg$[1];
+      selectList = function(e){
+        e.preventDefault();
+        this$.setState({
+          selectedIndex: index
+        });
+        return false;
+      };
+      return React.createElement("li", null, 
+          React.createElement("a", {href: "#", onClick: selectList}, name)
+        );
+    },
+    onNewListNameChange: function(e){
+      this.setState({
+        newListName: e.target.value
+      });
+    },
+    onNewList: function(e){
+      var newListIndex;
+      e.preventDefault();
+      newListIndex = this.state.listsNames.length;
+      todoStorage.saveList(newListIndex, {
+        name: this.state.newListName,
+        items: []
+      });
+      this.setState({
+        listsNames: this.loadLists(),
+        newListName: "",
+        selectedIndex: newListIndex
+      });
+      this.loadLists();
+      return false;
+    },
+    onDeleteList: function(e, listIndex){
+      var lists;
+      e.preventDefault();
+      lists = todoStorage.loadLists();
+      todoStorage.saveLists(map(function(){
+        return null;
+      })(
+      lists));
+      lists = map(function(arg$){
+        var x;
+        x = arg$[1];
+        return x;
+      })(
+      filter(function(arg$){
+        var i;
+        i = arg$[0];
+        return i !== listIndex;
+      })(
+      zip((function(){
+        var i$, to$, results$ = [];
+        for (i$ = 0, to$ = lists.length; i$ < to$; ++i$) {
+          results$.push(i$);
+        }
+        return results$;
+      }()))(
+      lists)));
+      todoStorage.saveLists(lists);
+      this.setState({
+        listsNames: this.loadLists(),
+        selectedIndex: 0
+      });
+      return false;
     },
     render: function(){
+      var listSelectors;
+      listSelectors = map(this.createListSelector)(
+      zip((function(){
+        var i$, to$, results$ = [];
+        for (i$ = 0, to$ = this.state.listsNames.length; i$ < to$; ++i$) {
+          results$.push(i$);
+        }
+        return results$;
+      }.call(this)))(
+      this.state.listsNames));
       return React.createElement("div", null, 
-          React.createElement("div", {id: "todo_lists"}), 
-          React.createElement(TodoList, {listIndex: 0}), 
+          React.createElement("div", {id: "todo_lists"}, 
+              React.createElement("ul", null, 
+                  listSelectors, 
+                  React.createElement("li", null, 
+                      React.createElement("form", {onSubmit: this.onNewList}, 
+                          React.createElement("input", {type: "text", placeholder: "new list", onChange: this.onNewListNameChange, value: this.state.newListName}), 
+                          React.createElement("button", null, "Add list")
+                      )
+                  )
+              )
+          ), 
+          React.createElement(TodoList, {listIndex: this.state.selectedIndex, onDeleteList: this.onDeleteList}), 
           React.createElement("div", {className: "clear"})
         );
     }

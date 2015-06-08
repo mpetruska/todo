@@ -17,17 +17,19 @@
         return null;
       }
     },
+    loadListNames: function(){
+      return map(function(it){
+        return it.name;
+      })(
+      todoStorage.loadLists());
+    },
     loadLists: function(){
       var e;
       try {
         return unfoldr(function(i){
-          var that, ref$;
+          var that;
           if (that = todoStorage.loadList(i)) {
-            return [
-              (ref$ = that.name) != null
-                ? ref$
-                : "todo-" + i, i + 1
-            ];
+            return [that, i + 1];
           } else {
             return null;
           }
