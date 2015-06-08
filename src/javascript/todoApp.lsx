@@ -19,10 +19,16 @@ TodoList = React.create-class do
     get-initial-state: ->
         name: "default"
         items: []
-        text: ""
+        new-task-text: ""
 
     component-did-mount: !->
-        list = todo-storage.load-list @props.list-index
+        @load-list @props.list-index
+
+    component-will-receive-props: (new-props) !->
+        @load-list new-props.list-index
+
+    load-list: (list-index) !->
+        list = todo-storage.load-list list-index
         @set-state do
             if list
                 name: list.name ? "default"
@@ -34,15 +40,15 @@ TodoList = React.create-class do
     save-list: (new-items) !->
         todo-storage.save-list @props.list-index, { name: @state.name, items: new-items }
 
-    on-change: (e) !->
-        @set-state { text: e.target.value }
+    on-new-task-text-change: (e) !->
+        @set-state new-task-text: e.target.value
 
-    handle-submit: (e) ->
+    on-new-task: (e) ->
         e.prevent-default!
-        new-items = @state.items ++ [ text: @state.text, finished: false ]
+        new-items = @state.items ++ [ text: @state.new-task-text, finished: false ]
         @set-state do
             items: new-items
-            text: ""
+            new-task-text: ""
         @save-list new-items
         false
 
@@ -67,34 +73,100 @@ TodoList = React.create-class do
             <TodoItem text={item.text} finished={item.finished} onDelete={onDelete} onFinishedChange={onFinishedChange}/>
           </li>``
 
+    on-delete-list: (e) ->
+        @props.on-delete-list e, @props.list-index
+
     render: ->
         children = @state.items
                    |> map (@createItem)
         ``<div id="todo_list">
-            <h4>{this.state.name}</h4>
-            <ul>{children}</ul>
-            <form onSubmit={this.handleSubmit}>
-                <input onChange={this.onChange} value={this.state.text} />
-                <button>Add</button>
+            <form onSubmit={this.onDeleteList}>
+                <button className="del">Delete list</button>
             </form>
+            <h4>{this.state.name}</h4>
+            <ul>
+                {children}
+                <form onSubmit={this.onNewTask}>
+                    <input type="text" placeholder="new task" onChange={this.onNewTaskTextChange} value={this.state.newTaskText} />
+                    <button>Add item</button>
+                </form>
+            </ul>
           </div>``
 
 TodoApp = React.create-class do
     
     get-initial-state: ->
-        lists: []
+        lists-names: []
+        selected-index: 0
+        new-list-name: ""
 
     component-did-mount: !->
-        @set-state do
-            lists: todo-storage.load-lists! ? []
+        @set-state lists-names: @load-lists!
 
-    save-lists: !->
-        todo-storage.save-lists @lists
+    load-lists: ->
+        lists = todo-storage.load-list-names!
+        if not lists or lists.length <= 0
+            todo-storage.save-list 0, { name: "default", items: [] }
+            lists = todo-storage.load-list-names!
+        
+        lists
+
+    create-list-selector: ([index, name]) ->
+
+        select-list = (e) ~>
+            e.prevent-default!
+            @set-state selected-index: index
+            false
+
+        ``<li>
+            <a href="#" onClick={selectList}>{name}</a>
+          </li>``
+
+    on-new-list-name-change: (e) !->
+        @set-state new-list-name: e.target.value
+
+    on-new-list: (e) ->
+        e.prevent-default!
+        new-list-index = @state.lists-names.length
+        todo-storage.save-list new-list-index, { name: @state.new-list-name, items: [] }
+        @set-state do
+            lists-names: @load-lists!
+            new-list-name: ""
+            selected-index: new-list-index
+        @load-lists!
+        false
+
+    on-delete-list: (e, list-index) ->
+        e.prevent-default!
+        lists = todo-storage.load-lists!
+        todo-storage.save-lists (lists |> map (-> null))
+        lists = lists
+                |> zip [0 til lists.length]
+                |> filter ([i]) -> i != list-index
+                |> map ([, x]) -> x
+        todo-storage.save-lists lists
+        @set-state do
+            lists-names: @load-lists!
+            selected-index: 0
+        false
 
     render: ->
+        list-selectors = @state.lists-names
+                         |> zip [0 til @state.lists-names.length]
+                         |> map (@create-list-selector)
         ``<div>
-            <div id="todo_lists"></div>
-            <TodoList listIndex={0} />
+            <div id="todo_lists">
+                <ul>
+                    {listSelectors}
+                    <li>
+                        <form onSubmit={this.onNewList}>
+                            <input type="text" placeholder="new list" onChange={this.onNewListNameChange} value={this.state.newListName} />
+                            <button>Add list</button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+            <TodoList listIndex={this.state.selectedIndex} onDeleteList={this.onDeleteList} />
             <div className="clear"></div>
           </div>``
 

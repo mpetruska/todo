@@ -13,11 +13,15 @@ window.todo-storage =
 			console.log e
 			null
 
+	load-list-names: ->
+		todo-storage.load-lists!
+		|> map (.name)
+
 	load-lists: ->
 		try
 			unfoldr ((i) ->
 				if todo-storage.load-list i
-					[that.name ? "todo-#i", (i + 1)]
+					[that, (i + 1)]
 				else
 					null), 0
 		catch
