@@ -102,14 +102,22 @@
       return this.props.onDeleteList(e, this.props.listIndex);
     },
     render: function(){
-      var children;
+      var visibleName, children;
+      visibleName = (function(){
+        switch (false) {
+        case !(!this.state.name || this.state.name === ""):
+          return "(no-name)";
+        default:
+          return this.state.name;
+        }
+      }.call(this));
       children = map(this.createItem)(
       this.state.items);
       return React.createElement("div", {id: "todo_list"}, 
           React.createElement("form", {onSubmit: this.onDeleteList}, 
               React.createElement("button", {className: "del"}, "Delete list")
           ), 
-          React.createElement("h4", null, this.state.name), 
+          React.createElement("h4", null, visibleName), 
           React.createElement("ul", null, 
               children, 
               React.createElement("form", {onSubmit: this.onNewTask}, 
@@ -146,7 +154,7 @@
       return lists;
     },
     createListSelector: function(arg$){
-      var index, name, selectList, this$ = this;
+      var index, name, selectList, selectableName, this$ = this;
       index = arg$[0], name = arg$[1];
       selectList = function(e){
         e.preventDefault();
@@ -155,8 +163,16 @@
         });
         return false;
       };
+      selectableName = (function(){
+        switch (false) {
+        case !(!name || name === ""):
+          return "(no-name)";
+        default:
+          return name;
+        }
+      }());
       return React.createElement("li", null, 
-          React.createElement("a", {href: "#", onClick: selectList}, name)
+          React.createElement("a", {href: "#", onClick: selectList}, selectableName)
         );
     },
     onNewListNameChange: function(e){
