@@ -109,12 +109,7 @@ TodoApp = React.create-class do
         @set-state lists-names: @load-lists!
 
     load-lists: ->
-        lists = todo-storage.load-list-names!
-        if not lists or lists.length <= 0
-            todo-storage.save-list 0, { name: "default", items: [] }
-            lists = todo-storage.load-list-names!
-        
-        lists
+        todo-storage.load-list-names!
 
     create-list-selector: ([index, name]) ->
 
@@ -136,24 +131,16 @@ TodoApp = React.create-class do
 
     on-new-list: (e) ->
         e.prevent-default!
-        new-list-index = @state.lists-names.length
-        todo-storage.save-list new-list-index, { name: @state.new-list-name, items: [] }
+        new-list-index = todo-storage.save-new-list @state.new-list-name
         @set-state do
             lists-names: @load-lists!
             new-list-name: ""
             selected-index: new-list-index
-        @load-lists!
         false
 
     on-delete-list: (e, list-index) ->
         e.prevent-default!
-        lists = todo-storage.load-lists!
-        todo-storage.save-lists (lists |> map (-> null))
-        lists = lists
-                |> zip [0 til lists.length]
-                |> filter ([i]) -> i != list-index
-                |> map ([, x]) -> x
-        todo-storage.save-lists lists
+        todo-storage.delete-list list-index
         @set-state do
             lists-names: @load-lists!
             selected-index: 0
