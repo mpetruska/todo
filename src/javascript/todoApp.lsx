@@ -77,13 +77,18 @@ TodoList = React.create-class do
         @props.on-delete-list e, @props.list-index
 
     render: ->
+        visible-name =
+            | !@state.name or @state.name == "" => "(no-name)"
+            | _ => @state.name
+
         children = @state.items
                    |> map (@createItem)
+
         ``<div id="todo_list">
             <form onSubmit={this.onDeleteList}>
                 <button className="del">Delete list</button>
             </form>
-            <h4>{this.state.name}</h4>
+            <h4>{visibleName}</h4>
             <ul>
                 {children}
                 <form onSubmit={this.onNewTask}>
@@ -118,8 +123,12 @@ TodoApp = React.create-class do
             @set-state selected-index: index
             false
 
+        selectable-name =
+            | !name or name == "" => "(no-name)"
+            | _ => name
+
         ``<li>
-            <a href="#" onClick={selectList}>{name}</a>
+            <a href="#" onClick={selectList}>{selectableName}</a>
           </li>``
 
     on-new-list-name-change: (e) !->
