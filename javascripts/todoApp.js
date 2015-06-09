@@ -142,16 +142,7 @@
       });
     },
     loadLists: function(){
-      var lists;
-      lists = todoStorage.loadListNames();
-      if (!lists || lists.length <= 0) {
-        todoStorage.saveList(0, {
-          name: "default",
-          items: []
-        });
-        lists = todoStorage.loadListNames();
-      }
-      return lists;
+      return todoStorage.loadListNames();
     },
     createListSelector: function(arg$){
       var index, name, selectList, selectableName, this$ = this;
@@ -183,46 +174,17 @@
     onNewList: function(e){
       var newListIndex;
       e.preventDefault();
-      newListIndex = this.state.listsNames.length;
-      todoStorage.saveList(newListIndex, {
-        name: this.state.newListName,
-        items: []
-      });
+      newListIndex = todoStorage.saveNewList(this.state.newListName);
       this.setState({
         listsNames: this.loadLists(),
         newListName: "",
         selectedIndex: newListIndex
       });
-      this.loadLists();
       return false;
     },
     onDeleteList: function(e, listIndex){
-      var lists;
       e.preventDefault();
-      lists = todoStorage.loadLists();
-      todoStorage.saveLists(map(function(){
-        return null;
-      })(
-      lists));
-      lists = map(function(arg$){
-        var x;
-        x = arg$[1];
-        return x;
-      })(
-      filter(function(arg$){
-        var i;
-        i = arg$[0];
-        return i !== listIndex;
-      })(
-      zip((function(){
-        var i$, to$, results$ = [];
-        for (i$ = 0, to$ = lists.length; i$ < to$; ++i$) {
-          results$.push(i$);
-        }
-        return results$;
-      }()))(
-      lists)));
-      todoStorage.saveLists(lists);
+      todoStorage.deleteList(listIndex);
       this.setState({
         listsNames: this.loadLists(),
         selectedIndex: 0
