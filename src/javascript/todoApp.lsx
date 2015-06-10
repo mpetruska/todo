@@ -1,5 +1,5 @@
 
-{ filter, map, zip } = require "prelude-ls"
+{ drop-while, filter, map, zip } = require "prelude-ls"
 
 TodoItem = React.create-class do
 
@@ -8,11 +8,17 @@ TodoItem = React.create-class do
         |> @props.on-finished-change
 
     render: ->
-        ``<span>
-            <input type="checkbox" checked={this.props.finished} id={this.props.text} onChange={this.onChange} />
-            <label htmlFor={this.props.text}>{this.props.text}</label>
-            <button className="del" onClick={this.props.onDelete}>X</button>
-          </span>``
+        | @props.disabled =>
+            ``<span>
+                <input type="checkbox" checked={this.props.finished} id={this.props.text} disabled="disabled" />
+                <label htmlFor={this.props.text}>{this.props.text}</label>
+              </span>``
+        | _ =>
+            ``<span>
+                <input type="checkbox" checked={this.props.finished} id={this.props.text} onChange={this.onChange} />
+                <label htmlFor={this.props.text}>{this.props.text}</label>
+                <button className="del" onClick={this.props.onDelete}>X</button>
+              </span>``
 
 TodoList = React.create-class do
 
@@ -20,6 +26,7 @@ TodoList = React.create-class do
         name: "default"
         items: []
         new-task-text: ""
+        mail-to-link: ""
 
     component-did-mount: !->
         @load-list @props.list-index
@@ -70,43 +77,112 @@ TodoList = React.create-class do
             false
 
         ``<li>
-            <TodoItem text={item.text} finished={item.finished} onDelete={onDelete} onFinishedChange={onFinishedChange}/>
+            <TodoItem text={item.text} finished={item.finished} onDelete={onDelete} onFinishedChange={onFinishedChange} disabled={this.props.isIncomingList} />
           </li>``
 
     on-delete-list: (e) ->
         @props.on-delete-list e, @props.list-index
 
+    on-delete-incoming-list: (e) ->
+        @props.on-delete-incoming-list e
+
+    create-mail-to-link: (email) ->
+        receive-link = JSON.stringify name: @state.name, items: @state.items
+                       |> encodeURIComponent
+        "mailto:#email?body=#receive-link"
+
+    on-recipient-change: (e) ->
+        @set-state mail-to-link: @create-mail-to-link e.target.value
+
+    noop: (e) ->
+        e.prevent-default!
+        false
+
     render: ->
-        visible-name =
-            | !@state.name or @state.name == "" => "(no-name)"
-            | _ => @state.name
+        | @props.is-incoming-list =>
+            visible-name =
+                | !@props.incomingList.name or @props.incomingList.name == "" => "no-name"
+                | _ => @props.incomingList.name
 
-        children = @state.items
-                   |> map (@createItem)
+            visible-name = "received list (#visible-name)"
 
-        ``<div id="todo_list">
-            <form onSubmit={this.onDeleteList}>
-                <button className="del">Delete list</button>
-            </form>
-            <h4>{visibleName}</h4>
-            <ul>
-                {children}
-                <form onSubmit={this.onNewTask}>
-                    <input type="text" placeholder="new task" onChange={this.onNewTaskTextChange} value={this.state.newTaskText} />
-                    <button>Add item</button>
+            children =
+                @props.incomingList.items
+                |> map (@createItem)
+
+            ``<div id="todo_list">
+                <form onSubmit={this.onDeleteIncomingList}>
+                    <button className="del">Delete list</button>
                 </form>
-            </ul>
-          </div>``
+                <h4>{visibleName}</h4>
+                <ul>
+                    {children}
+                </ul>
+              </div>``
+        | _ =>
+            visible-name =
+                | !@state.name or @state.name == "" => "(no-name)"
+                | _ => @state.name
+
+            children =
+                @state.items
+                |> map (@createItem)
+
+            ``<div id="todo_list">
+                <form onSubmit={this.onDeleteList}>
+                    <button className="del">Delete list</button>
+                </form>
+                <h4>{visibleName}</h4>
+                <ul>
+                    {children}
+                    <form onSubmit={this.onNewTask}>
+                        <input type="text" placeholder="new task" onChange={this.onNewTaskTextChange} value={this.state.newTaskText} />
+                        <button>Add item</button>
+                    </form>
+                </ul>
+                <hr />
+                <form onSubmit={this.noop}>
+                    <label for="recipient-email-address">Send list in email to:</label>
+                    <input type="email" placeholder="recipient" onChange={this.onRecipientChange} />
+                    <br />
+                    <a href={this.state.mailToLink}>Send</a>
+                </form>
+              </div>``
 
 TodoApp = React.create-class do
     
     get-initial-state: ->
+        incoming-list: null
+        is-incoming-list-selected: false
+        incoming-list-name-input: ""
         lists-names: []
         selected-index: 0
         new-list-name: ""
 
+    get-incoming-list: ->
+        parse-json = (text) ->
+            try
+                if JSON.parse text then that else null
+            catch
+                null
+        as-list = (obj) ->
+            if obj
+                name: obj.name, items: obj.items
+            else
+                null
+
+        location.hash
+        |> drop-while ((x) -> x == "#" or x == "!")
+        |> parse-json
+        |> as-list
+
     component-did-mount: !->
-        @set-state lists-names: @load-lists!
+        incoming-list = @get-incoming-list!
+        @set-state do
+            incoming-list: incoming-list
+            is-incoming-list-selected: (incoming-list != null)
+            incoming-list-name-input: incoming-list?.name
+            lists-names: @load-lists!
 
     load-lists: ->
         todo-storage.load-list-names!
@@ -115,7 +191,9 @@ TodoApp = React.create-class do
 
         select-list = (e) ~>
             e.prevent-default!
-            @set-state selected-index: index
+            @set-state do
+                is-incoming-list-selected: false
+                selected-index: index
             false
 
         selectable-name =
@@ -126,13 +204,46 @@ TodoApp = React.create-class do
             <a href="#" onClick={selectList}>{selectableName}</a>
           </li>``
 
+    create-incoming-list-selector: (name) ->
+
+        select-list = (e) ~>
+            e.prevent-default!
+            @set-state is-incoming-list-selected: true
+            false
+
+        visible-name =
+            | !name or name == "" => "no-name"
+            | _ => name
+
+        selectable-name = "received list (#visible-name)"
+
+        ``<li>
+            <a href="#" onClick={selectList}>{selectableName}</a>
+          </li>``
+
     on-new-list-name-change: (e) !->
         @set-state new-list-name: e.target.value
+
+    on-incoming-list-name-change: (e) !->
+        @set-state incoming-list-name-input: e.target.value
 
     on-new-list: (e) ->
         e.prevent-default!
         new-list-index = todo-storage.save-new-list @state.new-list-name
         @set-state do
+            lists-names: @load-lists!
+            new-list-name: ""
+            selected-index: new-list-index
+        false
+
+    on-save-incoming: (e) ->
+        e.prevent-default!
+        new-list-index = todo-storage.save-incoming-list do
+                            name: @state.incoming-list-name-input
+                            items: @state.incoming-list.items
+        @set-state do
+            incoming-list: null
+            is-incoming-list-selected: false
             lists-names: @load-lists!
             new-list-name: ""
             selected-index: new-list-index
@@ -146,25 +257,67 @@ TodoApp = React.create-class do
             selected-index: 0
         false
 
+    on-delete-incoming-list: (e) ->
+        e.prevent-default!
+        @set-state do
+            incoming-list: null
+            is-incoming-list-selected: false
+            lists-names: @load-lists!
+        location.hash = "";
+        false
+
     render: ->
         list-selectors = @state.lists-names
                          |> zip [0 til @state.lists-names.length]
                          |> map (@create-list-selector)
-        ``<div>
-            <div id="todo_lists">
-                <ul>
-                    {listSelectors}
-                    <li>
-                        <form onSubmit={this.onNewList}>
-                            <input type="text" placeholder="new list" onChange={this.onNewListNameChange} value={this.state.newListName} />
-                            <button>Add list</button>
-                        </form>
-                    </li>
-                </ul>
-            </div>
-            <TodoList listIndex={this.state.selectedIndex} onDeleteList={this.onDeleteList} />
-            <div className="clear"></div>
-          </div>``
+
+        switch
+        | @state.incoming-list != null =>
+            incoming-list-selector = @state.incoming-list.name
+                                     |> @create-incoming-list-selector
+            ``<div>
+                <div id="todo_lists">
+                    <ul>
+                        {incomingListSelector}
+                        <li>
+                            <form onSubmit={this.onSaveIncoming}>
+                                <input type="text" placeholder="new list" onChange={this.onIncomingListNameChange} value={this.state.incomingListNameInput} />
+                                <button>Save list</button>
+                            </form>
+                        </li>
+                    </ul>
+                    <hr />
+                    <ul>
+                        {listSelectors}
+                        <li>
+                            <form onSubmit={this.onNewList}>
+                                <input type="text" placeholder="new list" onChange={this.onNewListNameChange} value={this.state.newListName} />
+                                <button>Add list</button>
+                            </form>
+                        </li>
+                    </ul>
+                </div>
+                <TodoList listIndex={this.state.selectedIndex} onDeleteList={this.onDeleteList} onDeleteIncomingList={this.onDeleteIncomingList}
+                          isIncomingList={this.state.isIncomingListSelected} incomingList={this.state.incomingList} />
+                <div className="clear"></div>
+              </div>``
+        | _ =>
+            ``<div>
+                <div id="todo_lists">
+                    <ul>
+                        {listSelectors}
+                        <li>
+                            <form onSubmit={this.onNewList}>
+                                <input type="text" placeholder="new list" onChange={this.onNewListNameChange} value={this.state.newListName} />
+                                <button>Add list</button>
+                            </form>
+                        </li>
+                    </ul>
+                </div>
+                <TodoList listIndex={this.state.selectedIndex} onDeleteList={this.onDeleteList}
+                          isIncomingList={false} incomingList={null} />
+                <div className="clear"></div>
+              </div>``
 
 React.render do
     ``<TodoApp />``

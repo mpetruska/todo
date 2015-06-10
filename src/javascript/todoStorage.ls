@@ -59,6 +59,11 @@ window.todo-storage =
         todo-storage.save-list new-list-index, { name: name, items: [] }
         new-list-index
 
+    save-incoming-list: (list) ->
+        new-list-index = todo-storage.load-list-names!.length
+        todo-storage.save-list new-list-index, list
+        new-list-index        
+
     delete-list: (index) ->
         lists = todo-storage.load-lists!
         todo-storage.save-lists (lists |> map (-> null))
