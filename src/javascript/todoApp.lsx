@@ -1,5 +1,5 @@
 
-{ drop-while, filter, map, zip } = require "prelude-ls"
+{ drop-while, filter, map, take-while, zip } = require "prelude-ls"
 
 TodoItem = React.create-class do
 
@@ -87,9 +87,12 @@ TodoList = React.create-class do
         @props.on-delete-incoming-list e
 
     create-mail-to-link: (email) ->
-        receive-link = JSON.stringify name: @state.name, items: @state.items
+        url = location.href
+              |> take-while ((x) -> x != "#")
+        sep = '#!'
+        receive-list = JSON.stringify name: @state.name, items: @state.items
                        |> encodeURIComponent
-        "mailto:#email?body=#receive-link"
+        "mailto:#email?body=#url#sep#receive-list"
 
     on-recipient-change: (e) ->
         @set-state mail-to-link: @create-mail-to-link e.target.value
