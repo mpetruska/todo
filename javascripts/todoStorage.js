@@ -98,6 +98,12 @@
       });
       return newListIndex;
     },
+    saveIncomingList: function(list){
+      var newListIndex;
+      newListIndex = todoStorage.loadListNames().length;
+      todoStorage.saveList(newListIndex, list);
+      return newListIndex;
+    },
     deleteList: function(index){
       var lists;
       lists = todoStorage.loadLists();
