@@ -115,8 +115,9 @@ TodoList = React.create-class do
             |> map encode-part
             |> join ":"
 
-        receive-list = "#encoded-name:#encoded-items"
-        "mailto:#email?body=#url#sep#receive-list"
+        receive-list = "<#url#sep#encoded-name:#encoded-items>"
+                       |> encodeURIComponent
+        "mailto:#email?body=#receive-list"
 
     on-recipient-change: (e) ->
         new-recipient = e.target.value
