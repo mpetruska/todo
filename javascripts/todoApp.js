@@ -150,8 +150,9 @@
         }
       })(
       this.state.items)));
-      receiveList = encodedName + ":" + encodedItems;
-      return "mailto:" + email + "?body=" + url + sep + receiveList;
+      receiveList = encodeURIComponent(
+      "<" + url + sep + encodedName + ":" + encodedItems + ">");
+      return "mailto:" + email + "?body=" + receiveList;
     },
     onRecipientChange: function(e){
       var newRecipient;
