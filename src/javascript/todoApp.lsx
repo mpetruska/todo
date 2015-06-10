@@ -1,5 +1,5 @@
 
-{ drop-while, filter, map, take-while, zip } = require "prelude-ls"
+{ drop-while, filter, head, join, map, tail, take-while, zip } = require "prelude-ls"
 
 TodoItem = React.create-class do
 
@@ -26,6 +26,7 @@ TodoList = React.create-class do
         name: "default"
         items: []
         new-task-text: ""
+        recipient: ""
         mail-to-link: ""
 
     component-did-mount: !->
@@ -34,15 +35,23 @@ TodoList = React.create-class do
     component-will-receive-props: (new-props) !->
         @load-list new-props.list-index
 
+    clean-mail-to-link: (new-state) ->
+        new-state
+            ..recipient = ""
+            ..mail-to-link = ""
+        new-state
+
     load-list: (list-index) !->
         list = todo-storage.load-list list-index
-        @set-state do
+        new-state =
             if list
                 name: list.name ? "default"
                 items: list.items ? []
             else
                 name: "default"
                 items: []
+
+        @set-state (new-state |> @clean-mail-to-link)
 
     save-list: (new-items) !->
         todo-storage.save-list @props.list-index, { name: @state.name, items: new-items }
@@ -53,9 +62,8 @@ TodoList = React.create-class do
     on-new-task: (e) ->
         e.prevent-default!
         new-items = @state.items ++ [ text: @state.new-task-text, finished: false ]
-        @set-state do
-            items: new-items
-            new-task-text: ""
+        new-state = items: new-items, new-task-text: ""
+        @set-state (new-state |> @clean-mail-to-link)
         @save-list new-items
         false
 
@@ -65,14 +73,14 @@ TodoList = React.create-class do
             e.prevent-default!
             new-items = @state.items
                         |> filter (x) -> x != item
-            @set-state items: new-items
+            @set-state (items: new-items |> @clean-mail-to-link)
             @save-list new-items
             false
 
         on-finished-change = (x) ~>
             item.finished = x
             new-items = @state.items
-            @set-state items: new-items
+            @set-state (items: new-items |> @clean-mail-to-link)
             @save-list new-items
             false
 
@@ -87,15 +95,34 @@ TodoList = React.create-class do
         @props.on-delete-incoming-list e
 
     create-mail-to-link: (email) ->
+
+        encode-part = (text) ->
+            text.replace(/:/g, "&colon;")
+            |> encodeURIComponent
+
         url = location.href
               |> take-while ((x) -> x != "#")
+
         sep = '#!'
-        receive-list = JSON.stringify name: @state.name, items: @state.items
-                       |> encodeURIComponent
+
+        encoded-name =
+            @state.name
+            |> encode-part
+
+        encoded-items =
+            @state.items
+            |> map (x) -> if x.finished then "+#{x.text}" else "-#{x.text}"
+            |> map encode-part
+            |> join ":"
+
+        receive-list = "#encoded-name:#encoded-items"
         "mailto:#email?body=#url#sep#receive-list"
 
     on-recipient-change: (e) ->
-        @set-state mail-to-link: @create-mail-to-link e.target.value
+        new-recipient = e.target.value
+        @set-state do
+            recipient: new-recipient
+            mail-to-link: @create-mail-to-link new-recipient
 
     noop: (e) ->
         e.prevent-default!
@@ -146,7 +173,7 @@ TodoList = React.create-class do
                 <hr />
                 <form onSubmit={this.noop}>
                     <label for="recipient-email-address">Send list in email to:</label>
-                    <input type="email" placeholder="recipient" onChange={this.onRecipientChange} />
+                    <input type="email" placeholder="recipient" value={this.state.recipient} onChange={this.onRecipientChange} />
                     <br />
                     <a href={this.state.mailToLink}>Send</a>
                 </form>
@@ -163,23 +190,44 @@ TodoApp = React.create-class do
         new-list-name: ""
 
     get-incoming-list: ->
-        parse-json = (text) ->
-            try
-                if JSON.parse text then that else null
-            catch
-                null
-        as-list = (obj) ->
-            if obj
-                name: obj.name, items: obj.items
-            else
-                null
+
+        decode-part = (text) ->
+            (text |> decodeURIComponent).replace(/&colon;/g, ":")
+
+        starts-with = (text, prefix) -> (text.index-of prefix) == 0
+
+        parse-list = (text) ->
+            | text =>
+                parts = (text / ":")
+                name = parts |> head |> decode-part
+                items = parts
+                        |> tail
+                        |> map decode-part
+                        |> map (s) ->
+                            | (s `starts-with` "+") => text: (s.substring 1), finished: true
+                            | (s `starts-with` "-") => text: (s.substring 1), finished: false
+                            | _ => null
+                        |> filter (x) -> x != null
+
+                name: name
+                items: items
+
+            | _ => null
+
 
         location.hash
         |> drop-while ((x) -> x == "#" or x == "!")
-        |> parse-json
-        |> as-list
+        |> parse-list
 
     component-did-mount: !->
+        @initialize!
+        self = this
+        window.onhashchange = -> self.initialize!
+
+    component-will-unmount: !->
+        window.onhashchange = null
+
+    initialize: !->
         incoming-list = @get-incoming-list!
         @set-state do
             incoming-list: incoming-list
